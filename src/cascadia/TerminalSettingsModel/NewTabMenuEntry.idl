@@ -1,0 +1,55 @@
+// Copyright (c) Microsoft Corporation.
+// Licensed under the MIT license.
+
+import "Profile.idl";
+
+namespace Microsoft.Terminal.Settings.Model
+{
+    enum NewTabMenuEntryType
+    {
+        Invalid = 0,
+        Profile,
+        Separator,
+        Folder,
+        RemainingProfiles
+    };
+
+    [default_interface] unsealed runtimeclass NewTabMenuEntry
+    {
+        NewTabMenuEntryType Type;
+    }
+
+    [default_interface] runtimeclass SeparatorEntry : NewTabMenuEntry
+    {
+        SeparatorEntry();
+    }
+
+    [default_interface] runtimeclass ProfileEntry : NewTabMenuEntry
+    {
+        ProfileEntry();
+        ProfileEntry(String profile);
+
+        Profile Profile;
+        Int32 ProfileIndex;
+    }
+
+    [default_interface] runtimeclass FolderEntry : NewTabMenuEntry 
+    {
+        FolderEntry();
+        FolderEntry(String name);
+
+        String Name;
+        String Icon;
+        IVector<NewTabMenuEntry> Entries;
+    }
+
+    [default_interface] unsealed runtimeclass ProfileCollectionEntry : NewTabMenuEntry
+    {
+        IMap<Int32, Profile> Profiles;
+    }
+
+    [default_interface] runtimeclass RemainingProfilesEntry : ProfileCollectionEntry
+    {
+        RemainingProfilesEntry();
+    }
+}
