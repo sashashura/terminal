@@ -128,6 +128,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         INHERITABLE_SETTING(Model::TerminalSettings, IFontFeatureMap, FontFeatures);
 
         INHERITABLE_SETTING(Model::TerminalSettings, Model::ColorScheme, AppliedColorScheme);
+        INHERITABLE_SETTING(Model::TerminalSettings, hstring, ColorSchemeName);
         INHERITABLE_SETTING(Model::TerminalSettings, hstring, BackgroundImage);
         INHERITABLE_SETTING(Model::TerminalSettings, double, BackgroundImageOpacity, 1.0);
 
@@ -170,7 +171,8 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
 
         void _ApplyGlobalSettings(const Model::GlobalAppSettings& globalSettings) noexcept;
         void _ApplyAppearanceSettings(const Microsoft::Terminal::Settings::Model::IAppearanceConfig& appearance,
-                                      const Windows::Foundation::Collections::IMapView<hstring, Microsoft::Terminal::Settings::Model::ColorScheme>& schemes);
+                                      const Windows::Foundation::Collections::IMapView<hstring, Microsoft::Terminal::Settings::Model::ColorScheme>& schemes,
+                                      const winrt::Microsoft::Terminal::Settings::Model::Theme currentTheme);
 
         friend class SettingsModelLocalTests::TerminalSettingsTests;
     };

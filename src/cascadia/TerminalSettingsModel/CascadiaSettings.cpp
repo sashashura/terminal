@@ -326,6 +326,9 @@ Model::Profile CascadiaSettings::DuplicateProfile(const Model::Profile& source)
         DUPLICATE_SETTING_MACRO_SUB(appearance, target, SelectionBackground);
         DUPLICATE_SETTING_MACRO_SUB(appearance, target, CursorColor);
         DUPLICATE_SETTING_MACRO_SUB(appearance, target, Opacity);
+        DUPLICATE_SETTING_MACRO_SUB(appearance, target, DarkColorSchemeName);
+        DUPLICATE_SETTING_MACRO_SUB(appearance, target, LightColorSchemeName);
+        DUPLICATE_SETTING_MACRO_SUB(appearance, target, ColorSchemeName);
     }
 
     // UnfocusedAppearance is treated as a single setting,
@@ -430,22 +433,29 @@ void CascadiaSettings::_validateSettings()
 void CascadiaSettings::_validateAllSchemesExist()
 {
     const auto colorSchemes = _globals->ColorSchemes();
-    auto foundInvalidScheme = false;
+    auto foundInvalidDarkScheme = false;
+    auto foundInvalidLightScheme = false;
 
     for (const auto& profile : _allProfiles)
     {
         for (const auto& appearance : std::array{ profile.DefaultAppearance(), profile.UnfocusedAppearance() })
         {
-            if (appearance && !colorSchemes.HasKey(appearance.ColorSchemeName()))
+            if (appearance && !colorSchemes.HasKey(appearance.DarkColorSchemeName()))
             {
-                // Clear the user set color scheme. We'll just fallback instead.
-                appearance.ClearColorSchemeName();
-                foundInvalidScheme = true;
+                // Clear the user set dark color scheme. We'll just fallback instead.
+                appearance.ClearDarkColorSchemeName();
+                foundInvalidDarkScheme = true;
+            }
+            if (appearance && !colorSchemes.HasKey(appearance.LightColorSchemeName()))
+            {
+                // Clear the user set light color scheme. We'll just fallback instead.
+                appearance.ClearLightColorSchemeName();
+                foundInvalidLightScheme = true;
             }
         }
     }
 
-    if (foundInvalidScheme)
+    if (foundInvalidDarkScheme || foundInvalidLightScheme)
     {
         _warnings.Append(SettingsLoadWarnings::UnknownColorScheme);
     }

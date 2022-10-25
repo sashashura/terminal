@@ -57,7 +57,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         const auto globals = appSettings.GlobalSettings();
         settings->_ApplyProfileSettings(profile);
         settings->_ApplyGlobalSettings(globals);
-        settings->_ApplyAppearanceSettings(profile.DefaultAppearance(), globals.ColorSchemes());
+        settings->_ApplyAppearanceSettings(profile.DefaultAppearance(), globals.ColorSchemes(), globals.CurrentTheme());
 
         return settings;
     }
@@ -91,7 +91,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         {
             const auto globals = appSettings.GlobalSettings();
             auto childImpl = settings->CreateChild();
-            childImpl->_ApplyAppearanceSettings(unfocusedAppearance, globals.ColorSchemes());
+            childImpl->_ApplyAppearanceSettings(unfocusedAppearance, globals.ColorSchemes(), globals.CurrentTheme());
             child = *childImpl;
         }
 
@@ -183,13 +183,49 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         return settingsPair;
     }
 
-    void TerminalSettings::_ApplyAppearanceSettings(const IAppearanceConfig& appearance, const Windows::Foundation::Collections::IMapView<winrt::hstring, ColorScheme>& schemes)
+    void TerminalSettings::_ApplyAppearanceSettings(const IAppearanceConfig& appearance,
+                                                    const Windows::Foundation::Collections::IMapView<winrt::hstring, ColorScheme>& schemes,
+                                                    const winrt::Microsoft::Terminal::Settings::Model::Theme currentTheme)
     {
         _CursorShape = appearance.CursorShape();
         _CursorHeight = appearance.CursorHeight();
-        if (!appearance.ColorSchemeName().empty())
+
+        const auto requestedTheme = currentTheme.RequestedTheme();
+        const auto defaultName = appearance.ColorSchemeName();
+        auto darkName = appearance.DarkColorSchemeName();
+        auto lightName = appearance.LightColorSchemeName();
+
+        // If the darkName does not equal the default name, it means the setting change came from the UI or its a bad name. Either will process the same.
+        if (darkName != defaultName && requestedTheme != winrt::Windows::UI::Xaml::ElementTheme::Default)
         {
-            if (const auto scheme = schemes.TryLookup(appearance.ColorSchemeName()))
+            // if this is a bad name, move on to checking the theme to select the proper default color scheme name.
+            if (const auto scheme = schemes.TryLookup(defaultName))
+            {
+                ApplyColorScheme(scheme);
+            }
+            else
+            {
+                const auto& schemeName = requestedTheme == winrt::Windows::UI::Xaml::ElementTheme::Dark ? darkName : lightName;
+                if (const auto scheme = schemes.TryLookup(schemeName))
+                {
+                    ApplyColorScheme(scheme);
+                }
+            }
+        }
+        // system theme selected, set the color scheme based off of the system theme.
+        else if (requestedTheme == winrt::Windows::UI::Xaml::ElementTheme::Default)
+        {
+            const auto& schemeName = Windows::UI::Xaml::Application::Current().RequestedTheme() == Windows::UI::Xaml::ApplicationTheme::Dark ? darkName : lightName;
+            if (const auto scheme = schemes.TryLookup(schemeName))
+            {
+                ApplyColorScheme(scheme);
+            }
+        }
+        // application theme selected, set the color scheme based off of the system theme.
+        else
+        {
+            const auto schemeName = requestedTheme == winrt::Windows::UI::Xaml::ElementTheme::Dark ? darkName : lightName;
+            if (const auto scheme = schemes.TryLookup(schemeName))
             {
                 ApplyColorScheme(scheme);
             }
@@ -330,6 +366,7 @@ namespace winrt::Microsoft::Terminal::Settings::Model::implementation
         else
         {
             AppliedColorScheme(scheme);
+            ColorSchemeName(scheme.Name());
             _DefaultForeground = til::color{ scheme.Foreground() };
             _DefaultBackground = til::color{ scheme.Background() };
             _SelectionBackground = til::color{ scheme.SelectionBackground() };
