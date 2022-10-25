@@ -729,6 +729,11 @@ namespace winrt::Microsoft::Terminal::Control::implementation
 
         auto lock = _terminal->LockForWriting();
 
+        _cellSizeX = CSSLengthPercentage::FromString(_settings->CellSizeX().c_str());
+        _cellSizeY = CSSLengthPercentage::FromString(_settings->CellSizeY().c_str());
+        _runtimeOpacity = std::nullopt;
+        _runtimeUseAcrylic = std::nullopt;
+
         // GH#11285 - If the user is on Windows 10, and they wanted opacity, but
         // didn't explicitly request acrylic, then opt them in to acrylic.
         // On Windows 11+, this isn't needed, because we can have vintage opacity.
@@ -882,6 +887,8 @@ namespace winrt::Microsoft::Terminal::Control::implementation
         _desiredFont = { fontFace, 0, fontWeight.Weight, newSize, CP_UTF8 };
         _actualFont = { fontFace, 0, fontWeight.Weight, _desiredFont.GetEngineSize(), CP_UTF8, false };
         _actualFontFaceName = { fontFace };
+
+        _desiredFont.SetCellSizes(_cellSizeX, _cellSizeY);
 
         const auto before = _actualFont.GetSize();
         _updateFont();
