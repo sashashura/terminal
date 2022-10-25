@@ -1096,10 +1096,7 @@ namespace winrt::TerminalApp::implementation
             return nullptr;
         }
 
-        const auto iconSource{ IconPathConverter().IconSourceWUX(icon) };
-
-        WUX::Controls::IconSourceElement iconElement;
-        iconElement.IconSource(iconSource);
+        auto iconElement = IconPathConverter::IconWUX(icon);
         Automation::AutomationProperties::SetAccessibilityView(iconElement, Automation::Peers::AccessibilityView::Raw);
 
         return iconElement;
