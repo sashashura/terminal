@@ -41,6 +41,7 @@ namespace Microsoft::Console
             ShowHideWindow = 1,
             ClearBuffer = 2,
             SetParent = 3,
+            SetAutoExit = 4,
             ResizeWindow = 8
         };
 
@@ -64,6 +65,7 @@ namespace Microsoft::Console
         [[nodiscard]] bool _GetData(_Out_writes_bytes_(cbBuffer) void* const pBuffer, const DWORD cbBuffer);
         void _DoResizeWindow(const ResizeWindowData& data);
         void _DoSetWindowParent(const SetParentData& data);
+        void _DoSetAutoExit();
         void _DoClearBuffer() const;
         void _DoShowHide(const ShowHideData& data);
         void _Shutdown();

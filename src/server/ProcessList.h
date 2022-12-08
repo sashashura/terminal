@@ -54,11 +54,13 @@ public:
                                          _Inout_ size_t* const pcProcessList) const;
 
     void ModifyConsoleProcessFocus(const bool fForeground);
-
+    
+    void SetEmptyThreshold(size_t emptyThreshold) noexcept;
     bool IsEmpty() const;
 
 private:
     std::vector<ConsoleProcessHandle*> _processes;
+    size_t _emptyThreshold = 0;
 
     void _ModifyProcessForegroundRights(const HANDLE hProcess, const bool fForeground) const;
 };

@@ -151,6 +151,11 @@ try
             _DoSetWindowParent(reparentMessage);
             break;
         }
+        case PtySignal::SetAutoExit:
+        {
+            _DoSetAutoExit();
+            break;
+        }
         default:
             THROW_HR(E_UNEXPECTED);
         }
@@ -278,6 +283,20 @@ void PtySignalInputThread::_DoSetWindowParent(const SetParentData& data)
         // is, without all the other side effects of reparenting the window.
         // See #13066
         ::SetWindowLongPtrW(pseudoHwnd, GWLP_HWNDPARENT, reinterpret_cast<LONG_PTR>(owner));
+    }
+}
+
+void PtySignalInputThread::_DoSetAutoExit()
+{
+    LockConsole();
+    auto Unlock = wil::scope_exit([&] { UnlockConsole(); });
+
+    auto& gci = ServiceLocator::LocateGlobals().getConsoleInformation();
+    //gci.ProcessHandleList.SetEmptyThreshold(1);
+
+    if (gci.ProcessHandleList.IsEmpty())
+    {
+        ServiceLocator::RundownAndExit(S_OK);
     }
 }
 

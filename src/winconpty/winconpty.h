@@ -21,6 +21,7 @@ typedef struct _PseudoConsole
 #define PTY_SIGNAL_SHOWHIDE_WINDOW (1u)
 #define PTY_SIGNAL_CLEAR_WINDOW (2u)
 #define PTY_SIGNAL_REPARENT_WINDOW (3u)
+#define PTY_SIGNAL_SET_AUTO_EXIT (4u)
 #define PTY_SIGNAL_RESIZE_WINDOW (8u)
 
 // CreatePseudoConsole Flags
@@ -42,6 +43,7 @@ HRESULT _ResizePseudoConsole(_In_ const PseudoConsole* const pPty, _In_ const CO
 HRESULT _ClearPseudoConsole(_In_ const PseudoConsole* const pPty);
 HRESULT _ShowHidePseudoConsole(_In_ const PseudoConsole* const pPty, const bool show);
 HRESULT _ReparentPseudoConsole(_In_ const PseudoConsole* const pPty, _In_ const HWND newParent);
+HRESULT _SetPseudoConsoleAutoExit(_In_ const PseudoConsole* const pPty);
 void _ClosePseudoConsoleMembers(_In_ PseudoConsole* pPty, BOOL wait);
 
 HRESULT ConptyCreatePseudoConsoleAsUser(_In_ HANDLE hToken,

@@ -270,6 +270,12 @@ void ConsoleProcessList::ModifyConsoleProcessFocus(const bool fForeground)
     _ModifyProcessForegroundRights(GetCurrentProcess(), fForeground);
 }
 
+void ConsoleProcessList::SetEmptyThreshold(size_t emptyThreshold) noexcept
+{
+    assert(ServiceLocator::LocateGlobals().getConsoleInformation().IsConsoleLocked());
+    _emptyThreshold = emptyThreshold;
+}
+
 // Routine Description:
 // - Specifies that there are no remaining processes
 // TODO: This should not be exposed, most likely. Whomever is calling it should join this class.
@@ -280,7 +286,7 @@ void ConsoleProcessList::ModifyConsoleProcessFocus(const bool fForeground)
 bool ConsoleProcessList::IsEmpty() const
 {
     assert(ServiceLocator::LocateGlobals().getConsoleInformation().IsConsoleLocked());
-    return _processes.empty();
+    return _processes.size() <= _emptyThreshold;
 }
 
 // Routine Description:

@@ -2,17 +2,17 @@
 // Licensed under the MIT license.
 
 #include "pch.h"
-
 #include "ConptyConnection.h"
 
+#include <conpty-static.h>
 #include <winternl.h>
 
-#include "ConptyConnection.g.cpp"
 #include "CTerminalHandoff.h"
-
-#include "../../types/inc/utils.hpp"
-#include "../../types/inc/Environment.hpp"
 #include "LibraryResources.h"
+#include "../../types/inc/Environment.hpp"
+#include "../../types/inc/utils.hpp"
+
+#include "ConptyConnection.g.cpp"
 
 using namespace ::Microsoft::Console;
 using namespace std::string_view_literals;
@@ -37,29 +37,6 @@ static constexpr auto _errorFormat = L"{0} ({0:#010x})"sv;
 
 namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
 {
-    // Function Description:
-    // - creates some basic anonymous pipes and passes them to CreatePseudoConsole
-    // Arguments:
-    // - size: The size of the conpty to create, in characters.
-    // - phInput: Receives the handle to the newly-created anonymous pipe for writing input to the conpty.
-    // - phOutput: Receives the handle to the newly-created anonymous pipe for reading the output of the conpty.
-    // - phPc: Receives a token value to identify this conpty
-#pragma warning(suppress : 26430) // This statement sufficiently checks the out parameters. Analyzer cannot find this.
-    static HRESULT _CreatePseudoConsoleAndPipes(const COORD size, const DWORD dwFlags, HANDLE* phInput, HANDLE* phOutput, HPCON* phPC) noexcept
-    {
-        RETURN_HR_IF(E_INVALIDARG, phPC == nullptr || phInput == nullptr || phOutput == nullptr);
-
-        wil::unique_hfile outPipeOurSide, outPipePseudoConsoleSide;
-        wil::unique_hfile inPipeOurSide, inPipePseudoConsoleSide;
-
-        RETURN_IF_WIN32_BOOL_FALSE(CreatePipe(&inPipePseudoConsoleSide, &inPipeOurSide, nullptr, 0));
-        RETURN_IF_WIN32_BOOL_FALSE(CreatePipe(&outPipeOurSide, &outPipePseudoConsoleSide, nullptr, 0));
-        RETURN_IF_FAILED(ConptyCreatePseudoConsole(size, inPipePseudoConsoleSide.get(), outPipePseudoConsoleSide.get(), dwFlags, phPC));
-        *phInput = inPipeOurSide.release();
-        *phOutput = outPipeOurSide.release();
-        return S_OK;
-    }
-
     // Function Description:
     // - launches the client application attached to the new pseudoconsole
     HRESULT ConptyConnection::_LaunchAttachedClient() noexcept
@@ -324,8 +301,13 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
                     WI_SetFlag(flags, PSEUDOCONSOLE_PASSTHROUGH_MODE);
                 }
             }
-
-            THROW_IF_FAILED(_CreatePseudoConsoleAndPipes(til::unwrap_coord_size(dimensions), flags, &_inPipe, &_outPipe, &_hPC));
+            
+            wil::unique_hfile outPipePseudoConsoleSide;
+            wil::unique_hfile inPipePseudoConsoleSide;
+            THROW_IF_WIN32_BOOL_FALSE(CreatePipe(&inPipePseudoConsoleSide, _inPipe.put(), nullptr, 0));
+            THROW_IF_WIN32_BOOL_FALSE(CreatePipe(_outPipe.put(), &outPipePseudoConsoleSide, nullptr, 0));
+            THROW_IF_FAILED(ConptyCreatePseudoConsole(til::unwrap_coord_size(dimensions), inPipePseudoConsoleSide.get(), outPipePseudoConsoleSide.get(), flags, _hPC.put()));
+            THROW_IF_FAILED(ConptySetPseudoConsoleAutoExit(_hPC.get()));
 
             if (_initialParentHwnd != 0)
             {
@@ -689,6 +671,11 @@ namespace winrt::Microsoft::Terminal::TerminalConnection::implementation
 
     winrt::event_token ConptyConnection::NewConnection(const NewConnectionHandler& handler) { return _newConnectionHandlers.add(handler); };
     void ConptyConnection::NewConnection(const winrt::event_token& token) { _newConnectionHandlers.remove(token); };
+
+    void ConptyConnection::closePseudoConsoleAsync(HPCON hPC) noexcept
+    {
+        ::ConptyClosePseudoConsoleTimeout(hPC, 0);
+    }
 
     HRESULT ConptyConnection::NewHandoff(HANDLE in, HANDLE out, HANDLE signal, HANDLE ref, HANDLE server, HANDLE client, TERMINAL_STARTUP_INFO startupInfo) noexcept
     try
